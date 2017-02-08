@@ -13,6 +13,9 @@ def is_paired(row):
     if size == 1:
         return False
 
+    if size % 2 != 0:
+        return False
+    
     for i in range(0, size, 2):
         if(row[i] != row[i+1]):
             return False
