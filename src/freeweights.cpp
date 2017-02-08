@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <set>
 #include <iterator>
+#include <cmath>
 using namespace std;
 
 template<typename T> ostream& operator<<(ostream& os, const vector<T>& v) {
@@ -33,6 +34,10 @@ bool is_paired(const vector<T>& row) {
 	if (size == 1) {
 		return false;
 	}
+	if (size % 2 != 0) {
+		return false;
+	}
+
 	for (auto i = 0U; i < size; i += 2) {
 		if (row[i] != row[i + 1]) {
 			return false;
@@ -49,56 +54,37 @@ bool pair_weights(const vector<T>& row_1, const vector<T>& row_2, const T& M) {
 	copy_if(row_1.begin(), row_1.end(), back_inserter(row_1_filt), filt);
 	copy_if(row_2.begin(), row_2.end(), back_inserter(row_2_filt), filt);
 
-	bool res = is_paired(row_1_filt) and is_paired(row_2_filt);
-	//cerr << "M: " << M << " " << boolalpha << res << " " << row_1_filt << " -> "<< row_2_filt << endl;
-	return res;
+	return is_paired(row_1_filt) and is_paired(row_2_filt);
 }
 
 template<typename T>
-T get_max_weight(vector<T>& weights,
-		const vector<T>& row_1, const vector<T>& row_2) {
+T get_max_weight(vector<T>& weights, const vector<T>& row_1,
+		const vector<T>& row_2) {
+	// standard binary search
 
-	/*
-	cerr << lo << " " << hi << endl;
-	if (hi - lo == 1) {
-		cerr << "return: " << lo << " " << weights[hi] << endl;
-		return weights[hi];
-	}
-
-	T mid = lo + (hi - lo) / 2;
-	T M = weights[mid];
-
-	if (pair_weights(row_1, row_2, M)) {
-		return binary_search(lo, mid, weights, row_1, row_2);
-	} else {
-		return binary_search(mid, hi, weights, row_1, row_2);
-	}
-	*/
-	T lo(0), hi(weights.size()-1);
-	while(hi - lo > 1) {
-		T mid = lo + (hi - lo)/2;
+	T lo(0), hi(weights.size());
+	while (lo < hi) {
+		T mid = floor((hi + lo) / 2);
 		T M = weights[mid];
-		if(pair_weights(row_1, row_2, M)) {
+		if (pair_weights(row_1, row_2, M)) {
 			hi = mid;
 		} else {
-			lo = mid;
+			lo = mid + 1;
 		}
-	}
-	if(pair_weights(row_1, row_2, hi)) {
-		return weights[hi];
 	}
 	return weights[lo];
 }
 
 void f1() {
-	ifstream in("3.in");
+	ifstream in("1.in");
 	//istream &in = cin;
 
 	while (!in.eof()) {
 		string line;
 		std::getline(in, line);
-		if (line.size() == 0)
+		if (line.size() == 0) {
 			break;
+		}
 
 		typedef unsigned long T;
 		int n;
@@ -106,14 +92,18 @@ void f1() {
 
 		istringstream iss(line);
 		iss >> n;
+
+		// read the weights
 		std::getline(in, line);
 		istringstream iss1(line);
-
 		vector<T> weights_1((istream_iterator<T>(iss1)), istream_iterator<T>());
+
+		// second line of weights
 		std::getline(in, line);
 		istringstream iss2(line);
 		vector<T> weights_2((istream_iterator<T>(iss2)), istream_iterator<T>());
 
+		// use a std::set to create a list of unique weights
 		for (auto &e : weights_1) {
 			unique_weights.insert(e);
 		}
@@ -123,22 +113,17 @@ void f1() {
 		//unique_weights.insert(0);
 		vector<T> unique_weights_v(unique_weights.begin(),
 				unique_weights.end());
-		//sort(unique_weights_v.rbegin(), unique_weights_v.rend());
-		//cerr << "weights: " << unique_weights_v << endl;
 
-		if (pair_weights(weights_1, weights_2, T(0))) {
+		// use M=0 to check if the rows of weights are already sorted
+		if (pair_weights(weights_1, weights_2, 0UL)) {
 			// no need for further checking:
 			cout << "0" << endl;
-		} else {
-//			for(auto M : unique_weights_v) {
-//				cout << M << " " << pair_weights(weights_1, weights_2, M) << endl;
-//			}
-			T lo(0), hi(unique_weights_v.size() - 1);
-
-			T res = get_max_weight(unique_weights_v, weights_1,
-					weights_2);
-			cout << res << endl;
+			return;
 		}
+
+		// if they are not already sorted, use binary search to find the max weight to be moved...
+		T res = get_max_weight(unique_weights_v, weights_1, weights_2);
+		cout << res << endl;
 	}
 }
 int main() {
